@@ -16,6 +16,7 @@ description              : &description "Portafolio académico del equipo: Ebert
 url                      : "https://ebertcastillo.github.io"
 baseurl                  : ""
 repository               : "ebertcastillo/ebertcastillo.github.io"
+theme: null
 
 # Site Author
 author:
