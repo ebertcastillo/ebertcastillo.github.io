@@ -4,12 +4,20 @@
 //                         //
 //////////////////////////////
 
-// Strip units
+// Remove the unit of a length
+// @param {Number} $number - Number to remove unit from
+// @return {Number} - Unitless number
 @function strip-units($number) {
-  @return ($number / ($number * 0 + 1));
+  @if type-of($number) == 'number' and not unitless($number) {
+    @return $number / ($number * 0 + 1);
+  }
+  @return $number;
 }
 
-// Convert units
+// Convert a unit to another
+// @param {Number} $number - Number to convert
+// @param {String} $unit - Unit to convert to
+// @return {Number} - Converted number
 @function convert-units($number, $unit) {
   $strings: 'px' 'cm' 'mm' '%' 'ch' 'pica' 'in' 'em' 'rem' 'pt' 'pc' 'ex' 'vw' 'vh' 'vmin' 'vmax';
   $units:   1px  1cm  1mm  1%  1ch  1pica  1in  1em  1rem  1pt  1pc  1ex  1vw  1vh  1vmin  1vmax;
@@ -30,70 +38,43 @@
     @return false;
   }
 
-  $number: ($number / ($number * 0 + 1));
+  $number: strip-units($number);
   $number: $number * nth($units, $index);
 
   @return $number;
 }
 
-// Em
-@function em($value, $base: 16) {
-  @if not unitless($value) {
-    $value: strip-units($value);
+// Convert pixels to em
+// @param {Number} $pxval - Value in pixels
+// @param {Number} $base - Base font size in pixels
+// @return {Number} - Value in em
+@function em($pxval, $base: 16) {
+  @if not unitless($pxval) {
+    $pxval: strip-units($pxval);
   }
   @if not unitless($base) {
     $base: strip-units($base);
   }
-  @return ($value / $base) * 1em;
+  @return ($pxval / $base) * 1em;
 }
 
-// Rem
-@function rem($value, $base: 16) {
-  @if not unitless($value) {
-    $value: strip-units($value);
+// Convert pixels to rem
+// @param {Number} $pxval - Value in pixels
+// @param {Number} $base - Base font size in pixels
+// @return {Number} - Value in rem
+@function rem($pxval, $base: 16) {
+  @if not unitless($pxval) {
+    $pxval: strip-units($pxval);
   }
   @if not unitless($base) {
     $base: strip-units($base);
   }
-  @return ($value / $base) * 1rem;
+  @return ($pxval / $base) * 1rem;
 }
 
-// Px
+// Convert a unitless number to px
+// @param {Number} $value - Unitless number
+// @return {Number} - Value in pixels
 @function px($value) {
   @return $value * 1px;
-}
-
-// Unquote
-@function unquote($string) {
-  @return if(type-of($string) == 'string', #{$string}, $string);
-}
-
-// Is number
-@function is-number($value) {
-  @return type-of($value) == 'number';
-}
-
-// Is length
-@function is-length($value) {
-  @return type-of($value) == 'number' and not unitless($value);
-}
-
-// Is percentage
-@function is-percentage($value) {
-  @return type-of($value) == 'number' and unit($value) == '%';
-}
-
-// Is px
-@function is-px($value) {
-  @return type-of($value) == 'number' and unit($value) == 'px';
-}
-
-// Is em
-@function is-em($value) {
-  @return type-of($value) == 'number' and unit($value) == 'em';
-}
-
-// Is rem
-@function is-rem($value) {
-  @return type-of($value) == 'number' and unit($value) == 'rem';
 }
