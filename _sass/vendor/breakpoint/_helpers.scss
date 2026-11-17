@@ -1,153 +1,99 @@
-@use 'sass:math';
-
 //////////////////////////////
-// Converts the input value to Base EMs
+//                         //
+//    Helpers              //
+//                         //
 //////////////////////////////
-@function breakpoint-to-base-em($value) {
-  $value-unit: unit($value);
 
-  // Will convert relative EMs into root EMs.
-  @if breakpoint-get('base font size') and type-of(breakpoint-get('base font size')) == 'number' and $value-unit == 'em' {
-    $base-unit: unit(breakpoint-get('base font size'));
-
-    @if $base-unit == 'px' or $base-unit == '%' or $base-unit == 'em' or $base-unit == 'pt' {
-      @return base-conversion($value) / base-conversion(breakpoint-get('base font size')) * 1em;
-    }
-    @else {
-      @warn '#{breakpoint-get(\'base font size\')} is not set in valid units for font size!';
-      @return false;
-    }
-  }
-  @else {
-    @return base-conversion($value);
-  }
+// Strip units
+@function strip-units($number) {
+  @return ($number / ($number * 0 + 1));
 }
 
-@function base-conversion($value) {
-  $unit: unit($value);
+// Convert units
+@function convert-units($number, $unit) {
+  $strings: 'px' 'cm' 'mm' '%' 'ch' 'pica' 'in' 'em' 'rem' 'pt' 'pc' 'ex' 'vw' 'vh' 'vmin' 'vmax';
+  $units:   1px  1cm  1mm  1%  1ch  1pica  1in  1em  1rem  1pt  1pc  1ex  1vw  1vh  1vmin  1vmax;
+  $index: index($strings, $unit);
 
-  @if $unit == 'px' {
-    @return math.div($value, 16px) * 1em;
+  @if not $index {
+    @warn "Unknown unit `#{$unit}`.";
+    @return false;
   }
-  @else if $unit == '%' {
-    @return math.div($value, 100%) * 1em;
+
+  @if type-of($number) != "number" {
+    @warn "`#{$number} is not a number";
+    @return false;
   }
-  @else if $unit == 'em' {
-    @return $value;
+
+  @if unit($number) != "px" {
+    @warn "`#{$number} must be specified in `px` units";
+    @return false;
   }
-  @else if $unit == 'pt' {
-    @return math.div($value, 12pt) * 1em;
-  }
-  @else {
-    @return $value;
-//    @warn 'Everything is terrible! What have you done?!';
-  }
+
+  $number: ($number / ($number * 0 + 1));
+  $number: $number * nth($units, $index);
+
+  @return $number;
 }
 
-//////////////////////////////
-// Returns whether the feature can have a min/max pair
-//////////////////////////////
-$breakpoint-min-max-features: 'color',
-                              'color-index',
-                              'aspect-ratio',
-                              'device-aspect-ratio',
-                              'device-height',
-                              'device-width',
-                              'height',
-                              'monochrome',
-                              'resolution',
-                              'width';
-
-@function breakpoint-min-max($feature) {
-  @each $item in $breakpoint-min-max-features {
-    @if $feature == $item {
-      @return true;
-    }
+// Em
+@function em($value, $base: 16) {
+  @if not unitless($value) {
+    $value: strip-units($value);
   }
-  @return false;
+  @if not unitless($base) {
+    $base: strip-units($base);
+  }
+  @return ($value / $base) * 1em;
 }
 
-//////////////////////////////
-// Returns whether the feature can have a string value
-//////////////////////////////
-$breakpoint-string-features:  'orientation',
-                              'scan',
-                              'color',
-                              'aspect-ratio',
-                              'device-aspect-ratio',
-                              'pointer',
-                              'luminosity';
-
-@function breakpoint-string-value($feature) {
-  @each $item in $breakpoint-string-features {
-    @if breakpoint-min-max($item) {
-      @if $feature == 'min-#{$item}' or $feature == 'max-#{$item}' {
-        @return true;
-      }
-    }
-    @else if $feature == $item {
-      @return true;
-    }
+// Rem
+@function rem($value, $base: 16) {
+  @if not unitless($value) {
+    $value: strip-units($value);
   }
-  @return false;
+  @if not unitless($base) {
+    $base: strip-units($base);
+  }
+  @return ($value / $base) * 1rem;
 }
 
-//////////////////////////////
-// Returns whether the feature is a media type
-//////////////////////////////
-$breakpoint-media-types:  'all',
-                          'braille',
-                          'embossed',
-                          'handheld',
-                          'print',
-                          'projection',
-                          'screen',
-                          'speech',
-                          'tty',
-                          'tv';
-
-@function breakpoint-is-media($feature) {
-  @each $media in $breakpoint-media-types {
-    @if ($feature == $media) or ($feature == 'not #{$media}') or ($feature == 'only #{$media}') {
-      @return true;
-    }
-  }
-
-  @return false;
+// Px
+@function px($value) {
+  @return $value * 1px;
 }
 
-//////////////////////////////
-// Returns whether the feature can stand alone
-//////////////////////////////
-$breakpoint-single-string-features: 'color',
-                                    'color-index',
-                                    'grid',
-                                    'monochrome';
-
-@function breakpoint-single-string($feature) {
-  @each $item in $breakpoint-single-string-features {
-    @if $feature == $item {
-      @return true;
-    }
-  }
-  @return false;
+// Unquote
+@function unquote($string) {
+  @return if(type-of($string) == 'string', #{$string}, $string);
 }
 
-//////////////////////////////
-// Returns whether the feature
-//////////////////////////////
-@function breakpoint-is-resolution($feature) {
-  $resolutions: 'device-pixel-ratio', 'dpr';
+// Is number
+@function is-number($value) {
+  @return type-of($value) == 'number';
+}
 
-  @if breakpoint-get('transform resolutions') {
-    $resolutions: append($resolutions, 'resolution');
-  }
+// Is length
+@function is-length($value) {
+  @return type-of($value) == 'number' and not unitless($value);
+}
 
-  @each $reso in $resolutions {
-    @if index($feature, $reso) or index($feature, 'min-#{$reso}') or index($feature, 'max-#{$reso}') {
-      @return true;
-    }
-  }
+// Is percentage
+@function is-percentage($value) {
+  @return type-of($value) == 'number' and unit($value) == '%';
+}
 
-  @return false;
+// Is px
+@function is-px($value) {
+  @return type-of($value) == 'number' and unit($value) == 'px';
+}
+
+// Is em
+@function is-em($value) {
+  @return type-of($value) == 'number' and unit($value) == 'em';
+}
+
+// Is rem
+@function is-rem($value) {
+  @return type-of($value) == 'number' and unit($value) == 'rem';
 }
